@@ -1,5 +1,6 @@
 library ieee;
 use ieee.std_logic_1164.all;
+use ieee.numeric_std.all;
 
 entity memory is
  	generic (
@@ -19,3 +20,30 @@ entity memory is
 		data_out : out std_logic_vector((data_width*4)-1 downto 0)
 );
 end entity;
+
+architecture behavioral of memory is
+	subtype instruction is std_logic_vector((data_width-1) downto 0);
+    type mem_type is array ((2 **data_width - 1) downto 0) of instruction;
+    signal mem : mem_type := (others => (others => '0'));
+
+begin 
+	process(clock) 
+    begin
+
+		data_out <= std_logic_vector(to_unsigned(0, data_width*4));
+
+        if(data_write = '1' and falling_edge(clock)) then
+                mem(to_integer(unsigned(data_addr))) <= data_in(data_width-1 downto 0); -- Instruction (OpCode + Immediate)
+				mem(to_integer(unsigned(data_addr)) + 1) <= data_in(2*data_width-1 downto data_width); -- Instruction : PUSHIP, JEQ e JMP
+        end if;
+
+		if(data_read = '1' ) then
+            data_out <= mem(to_integer(unsigned(data_addr)) + 3) &
+						mem(to_integer(unsigned(data_addr)) + 2) &
+						mem(to_integer(unsigned(data_addr)) + 1) &
+						mem(to_integer(unsigned(data_addr)) + 0);
+        end if;
+
+    end process;
+
+end behavioral;
