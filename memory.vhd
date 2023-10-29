@@ -23,7 +23,7 @@ end entity;
 
 architecture behavioral of memory is
 	subtype instruction is std_logic_vector((data_width-1) downto 0);
-    type mem_type is array ((2 **data_width - 1) downto 0) of instruction;
+    type mem_type is array ((2 ** data_width - 1) downto 0) of instruction;
     signal mem : mem_type := (others => (others => '0'));
 
 begin 
@@ -37,7 +37,7 @@ begin
 				mem(to_integer(unsigned(data_addr)) + 1) <= data_in(2*data_width-1 downto data_width); -- Instruction : PUSHIP, JEQ e JMP
         end if;
 
-		if(data_read = '1' ) then
+		if(data_read = '1') then
             data_out <= mem(to_integer(unsigned(data_addr)) + 3) &
 						mem(to_integer(unsigned(data_addr)) + 2) &
 						mem(to_integer(unsigned(data_addr)) + 1) &
