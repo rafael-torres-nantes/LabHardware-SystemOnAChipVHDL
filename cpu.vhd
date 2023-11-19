@@ -52,6 +52,8 @@ entity cpu is
     signal instruction_immediate : std_logic_vector((data_width/2)-1 downto 0) := (others => '0');
 
     -----------------------------------------------------------------------------------------------
+    signal aux_instruction_addr: std_logic_vector(addr_width-1 downto 0);
+
     signal aux_codec_interrupt, aux_codec_read, aux_codec_write : std_logic := '0'; 
     signal aux_codec_data_in : std_logic_vector(7 downto 0) := (others => '0');
 
@@ -108,7 +110,8 @@ begin
 
                     -- Impede o Coded de interromper a instrução, evita que o Codec funcione por rising_edge
                     -- O CPU recebe o valor do adress da instruction
-                    instruction_addr <= std_logic_vector(to_unsigned(instruction_pointer, addr_width));
+                    aux_codec_interrupt <= '0';
+                    aux_instruction_addr <= std_logic_vector(to_unsigned(instruction_pointer, addr_width));
                     -- Instruction_addr = data_addr
                 end if;
             
@@ -367,7 +370,7 @@ begin
     end process;
     
     ---- Begin Memory Signals ---
-    -- instruction_addr <= instruction_addr;  -- Instruction address given to memory
+    instruction_addr <= aux_instruction_addr;  -- Instruction address given to memory
 
     mem_data_read <= aux_mem_data_read; -- When '1', read data from memory
     mem_data_write <= aux_mem_data_write; -- When '1', write data to memory

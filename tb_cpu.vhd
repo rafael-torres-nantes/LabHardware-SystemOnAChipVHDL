@@ -77,13 +77,18 @@ begin
             codec_data_in : std_logic_vector(7 downto 0); -- assert
         end record;
 
-        type vetor_tv is array (0 to 2) of line_tabela_verdade;
+        type vetor_tv is array (0 to 3) of line_tabela_verdade;
         constant tabela_verdade : vetor_tv := (
          
         -- Tabela Verdade Corrigida (falling_edge)
         -- (+) Entrada e (-) Saída
 
         -- IN
+
+            ('0', "00010000", x"0000", -- clock (+), halt (+), instruction_in (+), instruction_addr (-)
+            '0', '1', x"0001", x"0000",  x"00000000",  -- r_dmem (-), w_dmem (-), dmem_data_addr (-), dmem_data_in (-), dmem_data_out (+)
+            '1', '0', '1', '1',  x"00", x"00"   -- codec_read (-), codec_write (-), interrupt (-), codec_valid (+), codec_out (+), codec_in (-)
+            ), 
 
             ('0', x"20", x"0000", -- halt (+), instruction_in (+), instruction_addr (-)
             '1', '0', x"0001", x"00F3",  x"000000F3",  -- r_dmem (-), w_dmem (-), dmem_data_addr (-), dmem_data_in (-), dmem_data_out (+)
@@ -206,9 +211,9 @@ begin
 
             assert instruction_addr = tabela_verdade(i).instruction_addr 
                 report "ERROR instruction_addr : Valor não correspondente na tabela verdade. Linha[" &
-                integer'image(i) & "], o resultado deveria ser: " &
-                integer'image(to_integer(signed(tabela_verdade(i).instruction_addr))) & " != " &
-                integer'image(to_integer(signed(instruction_addr)))
+                integer'image(i) & "], o resultado deveria ser: " -- &
+                -- std_logic_vector'image(to_integer(unsigned(tabela_verdade(i).instruction_addr))) & " != " &
+                -- integer'image(to_integer(unsigned(instruction_addr)))
             severity failure;
 
             assert r_dmem = tabela_verdade(i).mem_data_read
@@ -227,16 +232,16 @@ begin
 
             assert dmem_data_addr = tabela_verdade(i).mem_data_addr
                 report "ERROR mem_data_addr : Valor não correspondente na tabela verdade. Linha[" &
-                integer'image(i) & "], o resultado deveria ser: " &
-                integer'image(to_integer(signed(tabela_verdade(i).mem_data_addr))) & " != " &
-                integer'image(to_integer(signed(dmem_data_addr)))
+                integer'image(i) & "], o resultado deveria ser: " -- &
+                -- integer'image(to_integer(unsigned(tabela_verdade(i).mem_data_addr))) & " != " &
+                -- integer'image(to_integer(unsigned(dmem_data_addr)))
             severity failure;
 
             assert dmem_data_in = tabela_verdade(i).mem_data_in
                 report "ERROR mem_data_in : Valor não correspondente na tabela verdade. Linha[" &
-                integer'image(i) & "], o resultado deveria ser: " &
-                integer'image(to_integer(signed(tabela_verdade(i).mem_data_in))) & " != " &
-                integer'image(to_integer(signed(dmem_data_in)))
+                integer'image(i) & "], o resultado deveria ser: " -- &
+                -- integer'image(to_integer(unsigned(tabela_verdade(i).mem_data_in))) & " != " &
+                -- integer'image(to_integer(unsigned(dmem_data_in)))
             severity failure;
         
 
@@ -264,8 +269,7 @@ begin
 
             assert codec_in = tabela_verdade(i).codec_data_in;
 
-            clock <= not clock;
-            wait for 1 ns;
+            clock <= '0';
             
         end loop; 
 
