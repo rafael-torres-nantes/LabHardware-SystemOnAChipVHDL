@@ -20,8 +20,8 @@ entity codec is
 
  architecture dataflow of codec is
     
-    file file_input : text open read_mode is "input.txt";
-    file file_output : text open write_mode is "output.txt";
+    file file_input : text open read_mode is "codec/input.txt";
+    file file_output : text open write_mode is "codec/output.txt";
 
     signal aux_data : std_logic_vector(7 downto 0);
 
