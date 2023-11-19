@@ -47,6 +47,7 @@ begin
 
     end process estimulo;
 end;
+        
 
         -- inter, r_s, w_s, val, cod_in, cod_out
         -- -- Hexadecimal para binário com complemento de 2, e após isso converta binário para decimal;
