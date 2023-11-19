@@ -94,64 +94,17 @@ begin
             '0', '1', '1', '1',  x"00", x"F3"           -- codec_read   (-), codec_write    (-), interrupt          (-), codec_valid    (+), codec_out      (+), codec_in (-)
             ),
 
-            ('0', x"20", x"0001", -- halt (+), instruction_in (+), instruction_addr (-)
-            '1', '0', x"0001", x"00F3",  x"000000F3",  -- r_dmem (-), w_dmem (-), dmem_data_addr (-), dmem_data_in (-), dmem_data_out (+)
-            '0', '1', '1', '1',  x"00", x"F3"   -- , codec_read (-), codec_write (-), interrupt (-), codec_valid (+), codec_out (+), codec_in (-)
+            ('0', x"20", x"0001",                       -- halt (+), instruction_in (+), instruction_addr (-)
+            '1', '0', x"0001", x"00F3",  x"000000F3",   -- r_dmem (-), w_dmem (-), dmem_data_addr (-), dmem_data_in (-), dmem_data_out (+)
+            '0', '1', '1', '1',  x"00", x"F3"           -- codec_read (-), codec_write (-), interrupt (-), codec_valid (+), codec_out (+), codec_in (-)
             ),
 
-            ('0', x"10", x"0001", -- halt (+), instruction_in (+), instruction_addr (-)
-             '0', '1', x"0000", x"0000",  x"00000000",  -- r_dmem (-), w_dmem (-), dmem_data_addr (-), dmem_data_in (-), dmem_data_out (+)
-             '1', '0', '1', '1',  "00000000", "00000000"   -- codec_read (-), codec_write (-), interrupt (-), codec_valid (+), codec_out (+), codec_in (-)
+            ('0', x"10", x"0001",                           -- halt (+), instruction_in (+), instruction_addr (-)
+             '0', '1', x"0000", x"0000",  x"00000000",      -- r_dmem (-), w_dmem (-), dmem_data_addr (-), dmem_data_in (-), dmem_data_out (+)
+             '1', '0', '1', '1',  "00000000", "00000000"    -- codec_read (-), codec_write (-), interrupt (-), codec_valid (+), codec_out (+), codec_in (-)
             )
 
         );
-
-    --     TYPE vetor_tabela_verdade IS ARRAY (0 TO 3) OF colunas_tabela_verdade;
-
-    --     -- Implement more test cases
-    --     CONSTANT tabela_verdade : vetor_tabela_verdade := (
-    --     (
-    --         '0', x"10", x"0000", -- IN
-    --         '0', '1', x"0000", x"0000", x"00000000", -- Write DMEM
-    --         '1', '1', '0', '1', x"00", x"00" -- Read CODEC
-    --         )
-    --         , (
-    --         '0', x"10", x"0000", -- IN
-    --         '0', '1', x"0000", x"0000", x"00000000", -- Write DMEM
-    --         '1', '1', '0', '1', x"00", x"00" -- Read CODEC
-    --         )
-    --         , (
-    --         '0', x"10", x"0000", -- IN
-    --         '0', '1', x"0000", x"0000", x"00000000",
-    --         '1', '1', '0', '1', x"00", x"00"
-    --         )
-    --         , (
-    --         '0', x"A0", x"0000",
-    --         '1', '0', x"0000", x"0000", x"00000000", -- Read DMEM
-    --         '1', '0', '1', '1', x"00", x"00" -- Write CODEC
-    --         )
-    --         -- , (
-    --         -- '0', x"C0", x"0003", -- OUT
-    --         -- '1', '0', x"0001", x"00F3", x"000000F3", -- Read DMEM
-    --         -- '1', '0', '1', '1', x"00", x"F3" -- Write CODEC
-    --         -- )
-    --         -- , (
-    --         -- '0', x"D0", x"0004", -- OUT
-    --         -- '1', '0', x"0001", x"00F3", x"000000F3", -- Read DMEM
-    --         -- '1', '0', '1', '1', x"00", x"F3" -- Write CODEC
-    --         -- )
-    --         -- , (
-    --         -- '0', x"20", x"0005", -- OUT
-    --         -- '1', '0', x"0001", x"00F3", x"000000F3", -- Read DMEM
-    --         -- '1', '0', '1', '1', x"00", x"F3" -- Write CODEC
-    --         -- )
-    --         -- , (
-    --         -- '0', x"20", x"0006", -- OUT
-    --         -- '1', '0', x"0000", x"00F3", x"0000000C", -- Read DMEM
-    --         -- '1', '0', '1', '1', x"00", x"0C" -- Write CODEC
-    --         -- )
-    --     );
-
     begin
 
         for i in tabela_verdade'range loop
