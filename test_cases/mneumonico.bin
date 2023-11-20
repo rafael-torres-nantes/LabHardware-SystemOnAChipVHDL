@@ -1,0 +1,23 @@
+hlt
+in
+out
+puship
+push imm -4
+push imm -3
+push imm -2
+push imm -1
+push imm 0
+push imm 1
+push imm 2
+push imm 3
+push imm 4
+drop
+dup
+add
+sub
+nand
+slt
+shl
+shr
+jeq
+jmp

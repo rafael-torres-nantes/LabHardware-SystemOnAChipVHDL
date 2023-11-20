@@ -160,9 +160,13 @@ begin
 
                     aux_mem_data_read <= '1';
                     aux_mem_data_write <= '0';
-
-                    aux_mem_data_addr <= std_logic_vector(to_unsigned(stack_pointer - 1, addr_width));
-                    stack_pointer <= stack_pointer - 1;
+                    
+                    if(stack_pointer = 0) then
+                        aux_mem_data_addr <= std_logic_vector(to_unsigned(0, addr_width));
+                    else
+                        aux_mem_data_addr <= std_logic_vector(to_unsigned(stack_pointer - 1, addr_width));
+                        stack_pointer <= stack_pointer - 1;
+                    end if;
 
                 -- Carrega 4 Byte da DMEM: Instruções que precisa acessar a memória
                 -- JEQ : Desempilha 3 OP's, verifica se OP1 é igual OP2 e se sim soma o OP3 no Instruction Pointer

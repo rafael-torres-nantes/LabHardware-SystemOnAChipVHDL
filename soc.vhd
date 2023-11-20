@@ -1,5 +1,7 @@
 library ieee;
 use ieee.std_logic_1164.all;
+use ieee.numeric_std.all;
+use std.textio.all;
 
 --> Entidade de mais alto nível da hierarquia
 --> Irá conter todas as outras entidades.
@@ -9,7 +11,7 @@ entity soc is
     generic (
         --> firmware filename informa o nome de arquivo que contém o firmware.
         --> O firmware será carregado na memória IMEM a partir do endereço zero quando a entidade soc for instanciada. 
-        firmware_filename: string := "firmware.bin"
+        firmware_filename: string := "test_cases/firmware.bin"
     );
     port (
         -- clock: recebe o pulso de clock gerado por um circuito auxiliar externo.
@@ -34,8 +36,8 @@ architecture dataflow of soc is
     signal codec_write: std_logic := '0';
     signal codec_valid: std_logic := '0';
 
-    signal codec_data_in: stc_logic_vector(7 downto 0) := (others => '0');
-    signal codec_data_out: stc_logic_vector(7 downto 0):= (others => '0');
+    signal codec_data_in: std_logic_vector(7 downto 0) := (others => '0');
+    signal codec_data_out: std_logic_vector(7 downto 0):= (others => '0');
     
     -------------- IMEM --------------
 
@@ -51,18 +53,18 @@ architecture dataflow of soc is
     signal dmem_data_write: std_logic := '0';
     signal dmem_data_addr : std_logic_vector(addr_width-1 downto 0)      := (others => '0');
     signal dmem_data_in : std_logic_vector((2 * data_width)-1 downto 0)  := (others => '0');
-    signal dmem_data_out : std_logic_vector((4 * data_width)-1 downto 0):= (others => '0');
+    signal dmem_data_out : std_logic_vector((4 * data_width)-1 downto 0) := (others => '0');
 
     -------------- CPU --------------
-    signal cpu_clock : std_logic := '0';
     signal cpu_halt : std_logic  := '0';
 
     signal cpu_instruction_in : std_logic_vector(data_width - 1 downto 0):= (others => '0');
-    signal cpu_instruction_addr: std_logic_vector(addr_width-1 downto 0):= (others => '0');
+    signal cpu_instruction_addr: std_logic_vector(addr_width-1 downto 0) := (others => '0');
 
     ----------------------------------
+    signal index : natural := 0;
     begin
-        codec : entity work.codec(behavioral)
+        codec : entity work.codec(dataflow)
             port map(
                 interrupt => codec_interrupt,
                 read_signal => codec_read,
@@ -78,6 +80,7 @@ architecture dataflow of soc is
                 data_width => data_width
             )
             port map(
+                clock => clock,
                 data_read => imem_data_read,
                 data_write => imem_data_write,
                 data_addr => imem_data_addr,
@@ -91,6 +94,7 @@ architecture dataflow of soc is
                 data_width => data_width
             )
             port map(
+                clock => clock,
                 data_read => dmem_data_read,
                 data_write => dmem_data_write,
                 data_addr => dmem_data_addr,
@@ -121,28 +125,29 @@ architecture dataflow of soc is
                 codec_data_in => codec_data_in
             );
         
-        process (clock, started, imem_data_out, instruction_addr) -- process to fill IMEM
+        process (clock, started, imem_data_out, cpu_instruction_addr) -- process to fill IMEM
             variable text_line : line;
             variable text_character : character;
         begin
-            if not endfile(firmware) and clock'event and clock = '1' then
+            if not endfile(firmware) and rising_edge(clock) then
                 -- Lê uma linha de texto do arquivo de entrada
                 readline(firmware, text_line);
+                for i in 0 to data_width - 1 loop
+                    read(text_line, text_character);
+                    if(text_character = '0') then
+                        imem_data_in(data_width - 1 - i) <= '0'; 
+                    else
+                        imem_data_in(data_width - 1 - i) <= '1'; 
+                    end if;
+                end loop;
                 
                 -- Escreve os caracteres na IMEM : Instruction Memory
                 -- Define as variáveis para passar para IMEM
                 imem_data_read <= '0';
                 imem_data_write <= '1';
-                imem_data_addr <= std_logic_vector(to_unsigned(final_instruction_pointer, addr_width));
+                imem_data_addr <= std_logic_vector(to_unsigned(index, addr_width));
 
-                -- Lê 16 caracteres da linha de texto.
-                for i in 0 to (data_width - 1) loop
-                    read(text_line, text_character);
-                    imem_data_in(data_width - 1 - i) <= text_character;
-                end loop;
-
-
-                final_instruction_pointer <= final_instruction_pointer + 1;
+                index <= index + 1;
             end if;
             
             -- Leitura dos valores da IMEM : Instruction Memory
@@ -150,12 +155,13 @@ architecture dataflow of soc is
             if (started = '1') then
                 imem_data_read <= '1';
                 imem_data_write <= '0';
-                instruction_in <= imem_data_out(data_width - 1 downto 0);
-                imem_data_addr <= instruction_addr;
-                halt <= '0';
-            
+
+                cpu_instruction_in <= imem_data_out(data_width - 1 downto 0);
+                imem_data_addr <= cpu_instruction_addr;
+                cpu_halt <= '0';
             else
-                halt <= '1';
+                cpu_halt <= '1';
+
             end if;
     end process;
 end architecture;

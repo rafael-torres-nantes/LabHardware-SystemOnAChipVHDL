@@ -260,6 +260,7 @@ begin
             valid <= tabela_verdade(i).codec_valid;
             codec_out <= tabela_verdade(i).codec_data_out;
 
+            -- Inicia a execução (4 ciclos de clock  para cada Instrução)
             -- Range = (halted --> fetch_instruction --> decode_instruction --> execute_instruction --> modify_ip)
             for j in 0 to 3 loop
                 clock <= not clock;
@@ -267,8 +268,6 @@ begin
                 clock <= not clock;
                 wait for 1 ns;
             end loop;
-
-            wait for 2 ns;
 
             assert instruction_addr = tabela_verdade(i).instruction_addr 
                 report "ERROR instruction_addr : Valor não correspondente na tabela verdade. Linha[" &
@@ -332,7 +331,9 @@ begin
                 integer'image(to_integer(unsigned(tabela_verdade(i).codec_data_in))) & " != " &
                 integer'image(to_integer(unsigned(codec_in)))
             severity failure;
+
         end loop; 
-    report "The end of tests";
+        report "The end of tests";
+        wait;
     end process;
 end architecture;
