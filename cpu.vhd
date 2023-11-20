@@ -189,8 +189,8 @@ begin
                     -- Continua o ciclo da Máquina de Estado da CPU.
                     next_state <= execute_instruction;
 
-                    aux_mem_data_read <= '0';
-                    aux_mem_data_write <= '1';
+                    aux_mem_data_read <= '1';
+                    aux_mem_data_write <= '0';
                     aux_mem_data_addr <= std_logic_vector(to_unsigned(stack_pointer - 2, addr_width));
                     stack_pointer <= stack_pointer - 2;
 
@@ -253,9 +253,9 @@ begin
 
                     aux_mem_data_read <= '0';
                     aux_mem_data_write <= '1';
-
+                    
                     aux_mem_data_addr <= std_logic_vector(to_unsigned(stack_pointer, addr_width));
-                    aux_mem_data_in <= std_logic_vector(to_unsigned(to_integer(unsigned(instruction_immediate)), 2 * data_width)) ;
+                    aux_mem_data_in <= std_logic_vector(to_signed(to_integer(signed(instruction_immediate)), 2 * data_width));
 
                 -- DROP : Elimina um elemento da pilha.
                 elsif(instruction_opcode = x"5") then
@@ -285,7 +285,10 @@ begin
                     operator_1 := std_logic_vector((signed(operator_1)) + (signed(operator_2)));
 
                     aux_mem_data_in <= std_logic_vector(to_unsigned(to_integer(unsigned(operator_1)), (2 * data_width)));
-
+  
+                    aux_mem_data_read <= '0';
+                    aux_mem_data_write <= '1';
+                    
                     aux_mem_data_addr <= std_logic_vector(to_unsigned(stack_pointer, addr_width));
                     
                 -- SUB : Desempilha Op1 e Op2 e empilha (Op1 − Op2).
@@ -302,6 +305,7 @@ begin
 
                     aux_mem_data_read <= '0';
                     aux_mem_data_write <= '1';
+
                     aux_mem_data_addr <= std_logic_vector(to_unsigned(stack_pointer, addr_width));
 
                 -- NAND : Desempilha Op1 e Op2 e empilha NAND(Op1, Op2).
@@ -318,6 +322,7 @@ begin
 
                     aux_mem_data_read <= '0';
                     aux_mem_data_write <= '1';
+
                     aux_mem_data_addr <= std_logic_vector(to_unsigned(stack_pointer, addr_width));
 
                 -- SLT : Desempilha Op1 e Op2 e empilha (Op1 < Op2).
@@ -441,6 +446,7 @@ begin
                     next_state <= fetch_instruction;
 
                     stack_pointer <= stack_pointer + 1;
+
                     instruction_pointer <= instruction_pointer + 1;
 
                 -- JEQ : Desempilha 3 OP's, verifica se OP1 é igual OP2 e se sim soma o OP3 no Instruction_Pointer
@@ -449,12 +455,12 @@ begin
                     next_state <= fetch_instruction;
  
                     if to_integer(unsigned(operator_1)) = to_integer(unsigned(operator_2)) then
-                        instruction_pointer <= to_integer(unsigned(operator_2bytes));
+                        instruction_pointer <= instruction_pointer + to_integer(unsigned(operator_2bytes));
                     else
                         instruction_pointer <= instruction_pointer + 1;
                     end if;
                 
-                -- JUMP :Desempilha Op1(2 bytes) e o atribui no registrador IP.
+                -- JUMP : Desempilha Op1(2 bytes) e o atribui no registrador IP.
                 elsif (instruction_opcode = x"F") then
                     -- Continua o ciclo da Máquina de Estado da CPU.
                     next_state <= fetch_instruction;
