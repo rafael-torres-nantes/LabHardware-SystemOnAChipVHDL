@@ -60,7 +60,7 @@ begin
             codec_data_in : std_logic_vector(7 downto 0); -- assert
         end record;
 
-        type vetor_tv is array (0 to 3) of line_tabela_verdade;
+        type vetor_tv is array (0 to 16) of line_tabela_verdade;
         constant tabela_verdade : vetor_tv := (
          
         -- Instruction : PUSHIP, JEQ e JMP (16 bits)
@@ -75,28 +75,115 @@ begin
         -- (+) Entrada e (-) Saída
 
             -- Opcode Halt: 
-            ('0', x"00", x"0000",                       -- halt         (+), instruction_in (+), instruction_addr   (-)
-            '0', '0', x"0000", x"0000",  x"00000000",   -- r_dmem       (-), w_dmem         (-), dmem_data_addr     (-), dmem_data_in   (-), dmem_data_out  (+)
-            '0', '0', '0', '0',  x"00", x"00"           -- codec_read   (-), codec_write    (-), interrupt          (-), codec_valid    (+), codec_out      (+), codec_in (-)
+            ('0', x"00", x"0000",                        -- halt         (+), instruction_in (+), instruction_addr   (-)
+             '0', '0', x"0000", x"0000", x"00000000",    -- r_dmem       (-), w_dmem         (-),                    (?), dmem_data_addr (-), dmem_data_in   (-), dmem_data_out  (+)
+             '0', '0', '0', '0',  x"00", x"00"           -- codec_read   (-), codec_write    (-), interrupt          (-), codec_valid    (+), codec_out      (+), codec_in       (-)
             ), 
 
             -- Opcode In : Empilha byte recebido do CODEC (Codec_Read e Mem_Write)
             -- codec_read = 1 : Lê o arquivo input.txt e possui o codec_out
-            ('0', x"10", x"0001",                       -- halt         (+), instruction_in (+), instruction_addr   (-)
-            '0', '1', x"0000", x"0010",  x"00000000",   -- r_dmem       (-), w_dmem         (-),                    (?), dmem_data_addr (-), dmem_data_in   (-), dmem_data_out  (+)
-            '1', '0', '1', '1',  x"10", x"00"           -- codec_read   (-), codec_write    (-), interrupt          (-), codec_valid    (+), codec_out      (+), codec_in       (-)
+            ('0', x"10", x"0001",                        -- halt         (+), instruction_in (+), instruction_addr   (-)
+             '0', '1', x"0001", x"0010", x"00000000",    -- r_dmem       (-), w_dmem         (-),                    (?), dmem_data_addr (-), dmem_data_in   (-), dmem_data_out  (+)
+             '1', '0', '1', '1', x"10",  x"00"           -- codec_read   (-), codec_write    (-), interrupt          (-), codec_valid    (+), codec_out      (+), codec_in       (-)
             ),
 
             -- Opcode Out : Empilha byte recebido do CODEC (Codec_Read e Mem_Write)
             -- codec_write = 1 : Escreve no arquivo output.txt e NAO tem o codec_out
-            ('0', x"20", x"0002",                       -- halt         (+), instruction_in (+), instruction_addr   (-)
-            '1', '0', x"0000", x"00F3",  x"00000000",   -- r_dmem       (-), w_dmem         (-), dmem_data_addr     (-), dmem_data_in   (-), dmem_data_out  (+)
-            '0', '1', '1', '1',  x"00", x"00"           -- codec_read   (-), codec_write    (-), interrupt          (-), codec_valid    (+), codec_out      (+), codec_in (-)
+            ('0', x"20", x"0002",                        -- halt         (+), instruction_in (+), instruction_addr   (-)
+             '1', '0', x"0000", x"0000", x"00000010",    -- r_dmem       (-), w_dmem         (-),                    (?), dmem_data_addr (-), dmem_data_in   (-), dmem_data_out  (+)
+             '0', '1', '1', '0',  x"00", x"10"           -- codec_read   (-), codec_write    (-), interrupt          (-), codec_valid    (+), codec_out      (+), codec_in       (-)
             ),
 
-            ('0', x"10", x"0003",                           -- halt (+), instruction_in (+), instruction_addr (-)
-            '0', '1', x"0000", x"00F3",  x"00000000",   -- r_dmem       (-), w_dmem         (-), dmem_data_addr     (-), dmem_data_in   (-), dmem_data_out  (+)
-            '1', '0', '1', '1',  x"00", x"00"           -- codec_read   (-), codec_write    (-), interrupt          (-), codec_valid    (+), codec_out      (+), codec_in (-)
+            -- Opcode PushIP : Empilha o endereço armazenado no registrador IP (2 bytes, primeiro MSB2 e depois LSB3).
+            ('0', x"30", x"0003",                        -- halt         (+), instruction_in (+), instruction_addr   (-)
+             '0', '1', x"0001", x"0003", x"00000000",    -- r_dmem       (-), w_dmem         (-),                    (?), dmem_data_addr (-), dmem_data_in   (-), dmem_data_out  (+)
+             '0', '0', '0', '0',  x"00", x"00"           -- codec_read   (-), codec_write    (-), interrupt          (-), codec_valid    (+), codec_out      (+), codec_in       (-)
+            ),
+
+            -- Opcode Imme : Empilha um byte contendo imediato (armazenado nos 4 bits menos significativos da instrução)
+            ('0', b"01001100", x"0004",                   -- halt         (+), instruction_in (+), instruction_addr   (-)
+             '0', '1', x"0002", x"000C", x"00000000",     -- r_dmem       (-), w_dmem         (-),                    (?), dmem_data_addr (-), dmem_data_in   (-), dmem_data_out  (+)
+             '0', '0', '0', '0', x"00", x"00"             -- codec_read   (-), codec_write    (-), interrupt          (-), codec_valid    (+), codec_out      (+), codec_in       (-)
+            ),
+
+            -- Opcode Imme : Empilha um byte contendo imediato (armazenado nos 4 bits menos significativos da instrução)
+            ('0', b"01001101", x"0005",                   -- halt         (+), instruction_in (+), instruction_addr   (-)
+            '0', '1', x"0003", x"000D", x"00000000",     -- r_dmem       (-), w_dmem         (-),                    (?), dmem_data_addr (-), dmem_data_in   (-), dmem_data_out  (+)
+            '0', '0', '0', '0',  x"00", x"00"            -- codec_read   (-), codec_write    (-), interrupt          (-), codec_valid    (+), codec_out      (+), codec_in       (-)
+            ),
+
+            -- Opcode Imme : Empilha um byte contendo imediato (armazenado nos 4 bits menos significativos da instrução)
+            ('0', b"01001110", x"0006",                  -- halt         (+), instruction_in (+), instruction_addr   (-)
+            '0', '1', x"0004", x"000E", x"00000000",    -- r_dmem       (-), w_dmem         (-),                    (?), dmem_data_addr (-), dmem_data_in   (-), dmem_data_out  (+)
+            '0', '0', '0', '0',  x"00", x"00"           -- codec_read   (-), codec_write    (-), interrupt          (-), codec_valid    (+), codec_out      (+), codec_in       (-)
+           ),
+
+
+            -- Opcode Imme : Empilha um byte contendo imediato (armazenado nos 4 bits menos significativos da instrução)
+            ('0', b"01001111", x"0007",                 -- halt         (+), instruction_in (+), instruction_addr   (-)
+            '0', '1', x"0005", x"000F", x"00000000",    -- r_dmem       (-), w_dmem         (-),                    (?), dmem_data_addr (-), dmem_data_in   (-), dmem_data_out  (+)
+            '0', '0', '0', '0',  x"00", x"00"           -- codec_read   (-), codec_write    (-), interrupt          (-), codec_valid    (+), codec_out      (+), codec_in       (-)
+            ),
+
+            -- Opcode Imme : Empilha um byte contendo imediato (armazenado nos 4 bits menos significativos da instrução)
+            ('0', b"01000000", x"0008",                        -- halt         (+), instruction_in (+), instruction_addr   (-)
+            '0', '1', x"0006", x"0000", x"00000000",    -- r_dmem       (-), w_dmem         (-),                    (?), dmem_data_addr (-), dmem_data_in   (-), dmem_data_out  (+)
+            '0', '0', '0', '0',  x"00", x"00"           -- codec_read   (-), codec_write    (-), interrupt          (-), codec_valid    (+), codec_out      (+), codec_in       (-)
+            ),
+
+            -- Opcode Imme : Empilha um byte contendo imediato (armazenado nos 4 bits menos significativos da instrução)
+            ('0', b"01000001", x"0009",                  -- halt         (+), instruction_in (+), instruction_addr   (-)
+            '0', '1', x"0007", x"0001", x"00000000",    -- r_dmem       (-), w_dmem         (-),                    (?), dmem_data_addr (-), dmem_data_in   (-), dmem_data_out  (+)
+            '0', '0', '0', '0',  x"00", x"00"           -- codec_read   (-), codec_write    (-), interrupt          (-), codec_valid    (+), codec_out      (+), codec_in       (-)
+           ),
+
+
+            -- Opcode Imme : Empilha um byte contendo imediato (armazenado nos 4 bits menos significativos da instrução)
+            ('0', b"01000010", x"000A",                        -- halt         (+), instruction_in (+), instruction_addr   (-)
+            '0', '1', x"0008", x"0002", x"00000000",    -- r_dmem       (-), w_dmem         (-),                    (?), dmem_data_addr (-), dmem_data_in   (-), dmem_data_out  (+)
+            '0', '0', '0', '0',  x"00", x"00"           -- codec_read   (-), codec_write    (-), interrupt          (-), codec_valid    (+), codec_out      (+), codec_in       (-)
+            ),
+
+            -- Opcode Imme : Empilha um byte contendo imediato (armazenado nos 4 bits menos significativos da instrução)
+            ('0', b"01000011", x"000B",                        -- halt         (+), instruction_in (+), instruction_addr   (-)
+            '0', '1', x"0009", x"0003", x"00000000",    -- r_dmem       (-), w_dmem         (-),                    (?), dmem_data_addr (-), dmem_data_in   (-), dmem_data_out  (+)
+            '0', '0', '0', '0',  x"00", x"00"           -- codec_read   (-), codec_write    (-), interrupt          (-), codec_valid    (+), codec_out      (+), codec_in       (-)
+           ),
+
+            -- Opcode Imme : Empilha um byte contendo imediato (armazenado nos 4 bits menos significativos da instrução)
+            ('0', b"01000100", x"000C",                        -- halt         (+), instruction_in (+), instruction_addr   (-)
+            '0', '1', x"000A", x"0004", x"00000000",    -- r_dmem       (-), w_dmem         (-),                    (?), dmem_data_addr (-), dmem_data_in   (-), dmem_data_out  (+)
+            '0', '0', '0', '0',  x"00", x"00"           -- codec_read   (-), codec_write    (-), interrupt          (-), codec_valid    (+), codec_out      (+), codec_in       (-)
+            ),
+
+            -- Opcode Drop : Elimina um elemento da pilha
+            ('0', x"50", x"000D",                        -- halt         (+), instruction_in (+), instruction_addr   (-)
+             '1', '0', x"0009", x"0000", x"00000000",    -- r_dmem       (-), w_dmem         (-),                    (?), dmem_data_addr (-), dmem_data_in   (-), dmem_data_out  (+)
+             '0', '0', '0', '0',  x"00", x"00"           -- codec_read   (-), codec_write    (-), interrupt          (-), codec_valid    (+), codec_out      (+), codec_in       (-)
+            ),
+
+            -- Opcode Dup : Reempilha o elemento no topo da pilha.
+            -- hex11 : bin0001.00001
+            ('0', x"60", x"000E",                        -- halt         (+), instruction_in (+), instruction_addr   (-)
+             '0', '1', x"0008", x"0011", x"40302011",    -- r_dmem       (-), w_dmem         (-),                    (?), dmem_data_addr (-), dmem_data_in   (-), dmem_data_out  (+)
+             '0', '0', '0', '0',  x"00", x"00"           -- codec_read   (-), codec_write    (-), interrupt          (-), codec_valid    (+), codec_out      (+), codec_in       (-)
+            ),
+
+            -- Opcode Add : Desempilha Op1 e Op2 e empilha (Op1 + Op2).
+            -- hex10 : bin0001.0000 = dec16
+            -- hex12 : bin0001.0010 = dec18
+            -- conta aritimetica = dec16 + dec18 = dec34
+            ('0', x"70", x"000F",                        -- halt         (+), instruction_in (+), instruction_addr   (-)
+             '0', '1', x"0002", x"0022", x"40301210",    -- r_dmem       (-), w_dmem         (-),                    (?), dmem_data_addr (-), dmem_data_in   (-), dmem_data_out  (+)
+             '0', '0', '0', '0',  x"00", x"00"           -- codec_read   (-), codec_write    (-), interrupt          (-), codec_valid    (+), codec_out      (+), codec_in       (-)
+            ),
+
+            -- Opcode Sub : Desempilha Op1 e Op2 e empilha (Op1 - Op2).
+            -- hex11 : bin0001.0001 = dec17
+            -- hex20 : bin0100.0000 = dec32
+            ('0', x"80", x"0010",                        -- halt         (+), instruction_in (+), instruction_addr   (-)
+             '0', '1', x"0000", x"0011", x"40302011",    -- r_dmem       (-), w_dmem         (-),                    (?), dmem_data_addr (-), dmem_data_in   (-), dmem_data_out  (+)
+             '0', '0', '0', '0',  x"00", x"00"           -- codec_read   (-), codec_write    (-), interrupt          (-), codec_valid    (+), codec_out      (+), codec_in       (-)
             )
 
         );
@@ -141,22 +228,6 @@ begin
                 std_logic'image(w_dmem)
             severity failure;
 
-            assert to_integer(unsigned(dmem_data_addr)) = to_integer(unsigned(tabela_verdade(i).mem_data_addr))
-                report "ERROR mem_data_addr : Valor não correspondente na tabela verdade. Linha[" &
-                integer'image(i) & "], o resultado deveria ser: "  &
-                integer'image(to_integer(unsigned(tabela_verdade(i).mem_data_addr))) & " != " &
-                integer'image(to_integer(unsigned(dmem_data_addr)))
-            severity failure;
-
-            assert to_integer(unsigned(dmem_data_in)) = to_integer(unsigned(tabela_verdade(i).mem_data_in))
-                report "ERROR mem_data_in : Valor não correspondente na tabela verdade. Linha[" &
-                integer'image(i) & "], o resultado deveria ser: " &
-                integer'image(to_integer(unsigned(tabela_verdade(i).mem_data_in))) & " != " &
-                integer'image(to_integer(unsigned(dmem_data_in)))
-            severity failure;
-        
-
-            ---- Begin Codec Signals ---
             assert interrupt = tabela_verdade(i).codec_interrupt
                 report "ERROR codec_interrupt : Valor não correspondente na tabela verdade. Linha[" &
                 integer'image(i) & "], o resultado deveria ser: " &
@@ -178,10 +249,26 @@ begin
                 std_logic'image(codec_write)
             severity failure;
 
-            assert codec_in = tabela_verdade(i).codec_data_in;
+            assert to_integer(unsigned(dmem_data_addr)) = to_integer(unsigned(tabela_verdade(i).mem_data_addr))
+                report "ERROR mem_data_addr : Valor não correspondente na tabela verdade. Linha[" &
+                integer'image(i) & "], o resultado deveria ser: "  &
+                integer'image(to_integer(unsigned(tabela_verdade(i).mem_data_addr))) & " != " &
+                integer'image(to_integer(unsigned(dmem_data_addr)))
+            severity failure;
 
-            clock <= '0';
-            
+            assert to_integer(signed(dmem_data_in)) = to_integer(signed(tabela_verdade(i).mem_data_in))
+                report "ERROR mem_data_in : Valor não correspondente na tabela verdade. Linha[" &
+                integer'image(i) & "], o resultado deveria ser: " &
+                integer'image(to_integer(unsigned(tabela_verdade(i).mem_data_in))) & " != " &
+                integer'image(to_integer(unsigned(dmem_data_in)))
+            severity failure;
+        
+            assert to_integer(unsigned(codec_in)) = to_integer(unsigned(tabela_verdade(i).codec_data_in))
+                report "ERROR codec_in : Valor não correspondente na tabela verdade. Linha[" &
+                integer'image(i) & "], o resultado deveria ser: " &
+                integer'image(to_integer(unsigned(tabela_verdade(i).codec_data_in))) & " != " &
+                integer'image(to_integer(unsigned(codec_in)))
+            severity failure;
         end loop; 
 
     end process;

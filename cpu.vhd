@@ -77,8 +77,8 @@ begin
         variable operator_2bytes : std_logic_vector((2 * data_width) - 1 downto 0) := (others => '0');
     begin
 
-        instruction_opcode <= instruction_in(data_width - 1 downto (data_width/2));
-        instruction_immediate <= instruction_in((data_width/2)-1 downto 0);
+        instruction_opcode <= instruction_in(data_width - 1 downto (data_width / 2));
+        instruction_immediate <= instruction_in((data_width / 2)-1 downto 0);
 
         case current_state is
 
@@ -111,8 +111,17 @@ begin
                     -- Impede o Coded de interromper a instrução, evita que o Codec funcione por rising_edge
                     -- O CPU recebe o Endereço da Instrução em Bits
                     aux_codec_interrupt <= '0';
+                    aux_codec_read <= '0';
+                    aux_codec_write <= '0';
+                    aux_codec_data_in <= std_logic_vector(to_unsigned(0, data_width));
+
+                    aux_mem_data_read <= '0';
+                    aux_mem_data_write <= '0';
+                    aux_mem_data_addr <= std_logic_vector(to_unsigned(0, addr_width));
+                    aux_mem_data_in <= std_logic_vector(to_unsigned(0, 2 * data_width));
+
+                    -- O CPU recebe o Endereço da Instrução em Bits
                     aux_instruction_addr <= std_logic_vector(to_unsigned(instruction_pointer, addr_width));
-                    -- Instruction_addr = data_addr
                 end if;
             
             -----------------------------------------------------------------------------------
@@ -140,7 +149,7 @@ begin
                     aux_codec_read <= '1';
                     aux_codec_write <= '0';
                     aux_codec_interrupt <= '1';
-                    
+
                 -- Carrega 1 Byte da DMEM: Instruções de Empilhar/Desempilhar da memória
                 -- OUT : Desempilha um byte e envia para o CODEC (Mem_Read e Codec_Write)
                 -- DROP : Elimina um elemento da pilha.
@@ -151,11 +160,12 @@ begin
 
                     aux_mem_data_read <= '1';
                     aux_mem_data_write <= '0';
+
                     aux_mem_data_addr <= std_logic_vector(to_unsigned(stack_pointer - 1, addr_width));
                     stack_pointer <= stack_pointer - 1;
 
                 -- Carrega 4 Byte da DMEM: Instruções que precisa acessar a memória
-                -- JEQ : Desempilha 3 OP's, verifica se OP1 é igual OP2 e se sim soma o OP3 no Instruction_Pointer
+                -- JEQ : Desempilha 3 OP's, verifica se OP1 é igual OP2 e se sim soma o OP3 no Instruction Pointer
                 elsif(instruction_opcode = x"E") then
                     -- Continua o ciclo da Máquina de Estado da CPU.
                     next_state <= execute_instruction;
@@ -173,15 +183,14 @@ begin
                 -- SHL : Desempilha Op1 e Op2 e empilha (Op1 ≪ Op2).
                 -- SHR : Desempilha Op1 e Op2 e empilha (Op1 ≫ Op2).
                 -- JUMP :Desempilha Op1(2 bytes) e o atribui no registrador IP.
-
                 elsif (instruction_opcode = x"8" or instruction_opcode = x"9"  or instruction_opcode = x"A"  or 
                        instruction_opcode = x"B" or instruction_opcode = x"C" or instruction_opcode = x"D" or 
                        instruction_opcode = x"F") then
                     -- Continua o ciclo da Máquina de Estado da CPU.
                     next_state <= execute_instruction;
 
-                    aux_mem_data_read <= '1';
-                    aux_mem_data_write <= '0';
+                    aux_mem_data_read <= '0';
+                    aux_mem_data_write <= '1';
                     aux_mem_data_addr <= std_logic_vector(to_unsigned(stack_pointer - 2, addr_width));
                     stack_pointer <= stack_pointer - 2;
 
@@ -219,6 +228,8 @@ begin
                     -- Retorna o ciclo da Máquina de Estado da CPU.
                     next_state <= modify_ip;
 
+                    aux_mem_data_in <= std_logic_vector(to_unsigned(0, 2 * data_width));
+
                     aux_codec_interrupt <= '1';
                     aux_codec_read <= '0';
                     aux_codec_write <= '1';
@@ -232,9 +243,8 @@ begin
                     aux_mem_data_read <= '0';
                     aux_mem_data_write <= '1';
 
-                    stack_pointer <= stack_pointer + 1;
                     aux_mem_data_addr <= std_logic_vector(to_unsigned(stack_pointer, addr_width));
-                    aux_mem_data_in <=  std_logic_vector(to_unsigned(instruction_pointer, data_width));
+                    aux_mem_data_in <= std_logic_vector(to_unsigned(instruction_pointer, 2 * data_width));
 
                 -- PUSH imm : Empilha um byte contendo imediato (armazenado nos 4 bits menos significativos da instrucao)
                 elsif(instruction_opcode = x"4") then
@@ -245,19 +255,12 @@ begin
                     aux_mem_data_write <= '1';
 
                     aux_mem_data_addr <= std_logic_vector(to_unsigned(stack_pointer, addr_width));
-                    aux_mem_data_in <= instruction_immediate;
+                    aux_mem_data_in <= std_logic_vector(to_unsigned(to_integer(unsigned(instruction_immediate)), 2 * data_width)) ;
 
                 -- DROP : Elimina um elemento da pilha.
                 elsif(instruction_opcode = x"5") then
                     -- Retorna o ciclo da Máquina de Estado da CPU.
-                    next_state <= modify_ip;
- 
-                    operator_1 := mem_data_out(data_width - 1 downto 0);
- 
-                    aux_mem_data_read <= '0';
-                    aux_mem_data_write <= '1';
-                    aux_mem_data_addr <= std_logic_vector(to_unsigned(stack_pointer, addr_width));
-                    
+                    next_state <= modify_ip;                   
 
                 -- DUP : Reempilha o elemento no topo da pilha.
                 elsif(instruction_opcode = x"6") then
@@ -265,7 +268,7 @@ begin
                     next_state <= modify_ip;
  
                     operator_1 := mem_data_out(data_width - 1 downto 0);
-                    aux_mem_data_in <= std_logic_vector(to_unsigned(0, data_width)) & operator_1;
+                    aux_mem_data_in <= std_logic_vector(to_unsigned(to_integer(unsigned(operator_1)), (2 * data_width)));
  
                     aux_mem_data_read <= '0';
                     aux_mem_data_write <= '1';
@@ -281,10 +284,8 @@ begin
                     operator_2 := mem_data_out(data_width - 1 downto 0);
                     operator_1 := std_logic_vector((signed(operator_1)) + (signed(operator_2)));
 
-                    aux_mem_data_in <= std_logic_vector(to_unsigned(0, data_width)) & operator_1;
+                    aux_mem_data_in <= std_logic_vector(to_unsigned(to_integer(unsigned(operator_1)), (2 * data_width)));
 
-                    aux_mem_data_read <= '0';
-                    aux_mem_data_write <= '1';
                     aux_mem_data_addr <= std_logic_vector(to_unsigned(stack_pointer, addr_width));
                     
                 -- SUB : Desempilha Op1 e Op2 e empilha (Op1 − Op2).
@@ -297,7 +298,7 @@ begin
                     operator_2 := mem_data_out(data_width - 1 downto 0);
                     operator_1 := std_logic_vector((signed(operator_1)) - (signed(operator_2)));
 
-                    aux_mem_data_in <= std_logic_vector(to_unsigned(0, data_width)) & operator_1;
+                    aux_mem_data_in <= std_logic_vector(to_unsigned(to_integer(unsigned(operator_1)), (2 * data_width)));
 
                     aux_mem_data_read <= '0';
                     aux_mem_data_write <= '1';
@@ -313,7 +314,7 @@ begin
                     operator_2 := mem_data_out(data_width - 1 downto 0);
                     operator_1 := std_logic_vector((unsigned(operator_1)) nand (unsigned(operator_2)));
 
-                    mem_data_in <= std_logic_vector(to_unsigned(0, data_width)) & operator_1;
+                    aux_mem_data_in <= std_logic_vector(to_unsigned(to_integer(unsigned(operator_1)), (2 * data_width)));
 
                     aux_mem_data_read <= '0';
                     aux_mem_data_write <= '1';
@@ -349,7 +350,7 @@ begin
                     
                     operator_1 := std_logic_vector(shift_left(signed(operator_1), to_integer(signed(operator_2))));
 
-                    aux_mem_data_in <= std_logic_vector(to_unsigned(0, data_width)) & operator_1;
+                    aux_mem_data_in <= std_logic_vector(to_unsigned(to_integer(unsigned(operator_1)), (2 * data_width)));
                     
                     aux_mem_data_read <= '0';
                     aux_mem_data_write <= '1';
@@ -365,7 +366,7 @@ begin
                     operator_2 := mem_data_out(data_width - 1 downto 0);
                     operator_1 := std_logic_vector(shift_right(signed(operator_1), to_integer(signed(operator_2))));
 
-                    aux_mem_data_in <= std_logic_vector(to_unsigned(0, data_width)) & operator_1;
+                    aux_mem_data_in <= std_logic_vector(to_unsigned(to_integer(unsigned(operator_1)), (2 * data_width)));
                     
                     aux_mem_data_read <= '0';
                     aux_mem_data_write <= '1';
@@ -413,7 +414,7 @@ begin
                       instruction_opcode = x"5" ) then
                     -- Continua o ciclo da Máquina de Estado da CPU.
                     next_state <= fetch_instruction;
-
+                    
                     instruction_pointer <= instruction_pointer + 1;
     
                 -- DUP : Reempilha o elemento no topo da pilha.
@@ -424,7 +425,7 @@ begin
                     stack_pointer <= stack_pointer + 2;
                     instruction_pointer <= instruction_pointer + 1;
 
-                -- Push IP : Empilha o endere¸co armazenado no registrador IP (2 bytes, primeiro MSB2 e depois LSB3).
+                -- Push IP : Empilha o endereco armazenado no registrador IP (2 bytes, primeiro MSB2 e depois LSB3).
                 -- Push Imme : Empilha um byte contendo imediato (armazenado nos 4 bits menos significativos da instrução)
                 -- ADD : Desempilha Op1 e Op2 e empilha (Op1 + Op2).
                 -- SUB : Desempilha Op1 e Op2 e empilha (Op1 - Op2).
@@ -477,7 +478,6 @@ begin
     codec_interrupt <= aux_codec_interrupt; -- Interrupt signal
     codec_read <= aux_codec_read; -- Read signal
     codec_write <= aux_codec_write; -- Write signal
-
     codec_data_in <= aux_codec_data_in;  -- Byte read from codec
 
 end architecture;
