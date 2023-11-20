@@ -137,10 +137,10 @@ begin
                     -- Continua o ciclo da Máquina de Estado da CPU.
                     next_state <= execute_instruction;
 
-                    aux_codec_interrupt <= '1';
                     aux_codec_read <= '1';
                     aux_codec_write <= '0';
-                
+                    aux_codec_interrupt <= '1';
+                    
                 -- Carrega 1 Byte da DMEM: Instruções de Empilhar/Desempilhar da memória
                 -- OUT : Desempilha um byte e envia para o CODEC (Mem_Read e Codec_Write)
                 -- DROP : Elimina um elemento da pilha.
@@ -209,7 +209,7 @@ begin
                         aux_mem_data_write <= '1';
 
                         aux_mem_data_addr <= std_logic_vector(to_unsigned(stack_pointer, addr_width));
-                        aux_mem_data_in <= std_logic_vector(to_unsigned(0, data_width)) & codec_data_out;
+                        aux_mem_data_in <= std_logic_vector(to_unsigned(to_integer(unsigned(codec_data_out)), (2 * data_width)));
 
                         stack_pointer <= stack_pointer + 1;
                     end if;
@@ -224,7 +224,7 @@ begin
                     aux_codec_write <= '1';
                     aux_codec_data_in <= mem_data_out(data_width - 1 downto 0);
         
-                -- PUSHIP : Empilha o endereco armazenado no registrador IP(2 bytes, primeiro MSB2 e depois LSB3).
+                -- PUSHIP : Empilha o endereco armazenado no registrador IP(2 bytes, primeiro Byte Mais Significativo e depois Menos Significativo.
                 elsif(instruction_opcode = x"3") then
                     -- Retorna o ciclo da Máquina de Estado da CPU..
                     next_state <= modify_ip;
@@ -234,19 +234,19 @@ begin
 
                     stack_pointer <= stack_pointer + 1;
                     aux_mem_data_addr <= std_logic_vector(to_unsigned(stack_pointer, addr_width));
-                    aux_mem_data_in <= instruction_in;
+                    aux_mem_data_in <=  std_logic_vector(to_unsigned(instruction_pointer, data_width));
 
                 -- PUSH imm : Empilha um byte contendo imediato (armazenado nos 4 bits menos significativos da instrucao)
                 elsif(instruction_opcode = x"4") then
                     -- Retorna o ciclo da Máquina de Estado da CPU.
                     next_state <= modify_ip;
 
-                    aux_mem_data_in <= instruction_immediate;
-
                     aux_mem_data_read <= '0';
                     aux_mem_data_write <= '1';
-                    mem_data_addr <= std_logic_vector(to_unsigned(stack_pointer, addr_width));
-                    
+
+                    aux_mem_data_addr <= std_logic_vector(to_unsigned(stack_pointer, addr_width));
+                    aux_mem_data_in <= instruction_immediate;
+
                 -- DROP : Elimina um elemento da pilha.
                 elsif(instruction_opcode = x"5") then
                     -- Retorna o ciclo da Máquina de Estado da CPU.
@@ -256,7 +256,7 @@ begin
  
                     aux_mem_data_read <= '0';
                     aux_mem_data_write <= '1';
-                    aux_mem_data_addr <= STD_LOGIC_VECTOR(to_unsigned(stack_pointer, addr_width));
+                    aux_mem_data_addr <= std_logic_vector(to_unsigned(stack_pointer, addr_width));
                     
 
                 -- DUP : Reempilha o elemento no topo da pilha.
@@ -265,11 +265,11 @@ begin
                     next_state <= modify_ip;
  
                     operator_1 := mem_data_out(data_width - 1 downto 0);
-                    aux_mem_data_in <= STD_LOGIC_VECTOR(to_unsigned(0, data_width)) & operator_1;
+                    aux_mem_data_in <= std_logic_vector(to_unsigned(0, data_width)) & operator_1;
  
                     aux_mem_data_read <= '0';
                     aux_mem_data_write <= '1';
-                    aux_mem_data_addr <= STD_LOGIC_VECTOR(to_unsigned(stack_pointer, addr_width));
+                    aux_mem_data_addr <= std_logic_vector(to_unsigned(stack_pointer, addr_width));
 
                 -- ADD : Desempilha Op1 e Op2 e empilha (Op1 + Op2).
                 elsif(instruction_opcode = x"8") then
@@ -311,7 +311,7 @@ begin
                     -- Remove dois bytes da IMEM e devolva 1 byte
                     operator_1 := mem_data_out((2 * data_width) - 1 downto data_width);
                     operator_2 := mem_data_out(data_width - 1 downto 0);
-                    operator_1 := std_logic_vector((signed(operator_1)) nand (signed(operator_2)));
+                    operator_1 := std_logic_vector((unsigned(operator_1)) nand (unsigned(operator_2)));
 
                     mem_data_in <= std_logic_vector(to_unsigned(0, data_width)) & operator_1;
 
@@ -328,10 +328,10 @@ begin
                     operator_1 := mem_data_out((2 * data_width) - 1 downto data_width);
                     operator_2 := mem_data_out(data_width - 1 downto 0);
 
-                    if to_integer(unsigned(operator_1)) < to_integer(unsigned(operator_2)) then
-                        aux_mem_data_in <= std_logic_vector(to_unsigned(1, data_width * 2));
+                    if to_integer(signed(operator_1)) < to_integer(signed(operator_2)) then
+                        aux_mem_data_in <= std_logic_vector(to_unsigned(1, 2 * data_width));
                     else
-                        aux_mem_data_in <= std_logic_vector(to_unsigned(0, data_width * 2));
+                        aux_mem_data_in <= std_logic_vector(to_unsigned(0, 2 * data_width));
                     end if;
 
                     aux_mem_data_read <= '0';
@@ -347,7 +347,7 @@ begin
                     operator_1 := mem_data_out((2 * data_width) - 1 downto data_width);
                     operator_2 := mem_data_out(data_width - 1 downto 0);
                     
-                    operator_1 := std_logic_vector(shift_left(unsigned(operator_1), to_integer(unsigned(operator_2))));
+                    operator_1 := std_logic_vector(shift_left(signed(operator_1), to_integer(signed(operator_2))));
 
                     aux_mem_data_in <= std_logic_vector(to_unsigned(0, data_width)) & operator_1;
                     
@@ -363,7 +363,7 @@ begin
                     -- Remove dois bytes da IMEM e devolva 1 byte
                     operator_1 := mem_data_out((2 * data_width) - 1 downto data_width);
                     operator_2 := mem_data_out(data_width - 1 downto 0);
-                    operator_1 := std_logic_vector(shift_right(unsigned(operator_1), to_integer(unsigned(operator_2))));
+                    operator_1 := std_logic_vector(shift_right(signed(operator_1), to_integer(signed(operator_2))));
 
                     aux_mem_data_in <= std_logic_vector(to_unsigned(0, data_width)) & operator_1;
                     
@@ -403,18 +403,27 @@ begin
                 elsif(instruction_opcode = x"0") then
                     -- Continua o ciclo da Máquina de Estado da CPU.
                     next_state <= halted;
+                    
                     instruction_pointer <= instruction_pointer + 1;
 
                 -- In : Empilha byte recebido do CODEC (Codec_Read e Mem_Write)
                 -- OUT : Desempilha um byte e envia para o CODEC (Mem_Read e Codec_Write)
-                elsif(instruction_opcode = x"1" or instruction_opcode = x"2") then
+                -- DROP : Elimina um elemento da pilha.
+                elsif(instruction_opcode = x"1" or instruction_opcode = x"2" or
+                      instruction_opcode = x"5" ) then
                     -- Continua o ciclo da Máquina de Estado da CPU.
                     next_state <= fetch_instruction;
 
                     instruction_pointer <= instruction_pointer + 1;
     
-                -- DROP : Elimina um elemento da pilha.
                 -- DUP : Reempilha o elemento no topo da pilha.
+                elsif(instruction_opcode = x"6") then
+                    -- Continua o ciclo da Máquina de Estado da CPU.
+                    next_state <= fetch_instruction;
+
+                    stack_pointer <= stack_pointer + 2;
+                    instruction_pointer <= instruction_pointer + 1;
+
                 -- Push IP : Empilha o endere¸co armazenado no registrador IP (2 bytes, primeiro MSB2 e depois LSB3).
                 -- Push Imme : Empilha um byte contendo imediato (armazenado nos 4 bits menos significativos da instrução)
                 -- ADD : Desempilha Op1 e Op2 e empilha (Op1 + Op2).
@@ -423,10 +432,10 @@ begin
                 -- SLT : Desempilha Op1 e Op2 e empilha (Op1 < Op2).
                 -- SHL : Desempilha Op1 e Op2 e empilha (Op1 ≪ Op2).
                 -- SHR : Desempilha Op1 e Op2 e empilha (Op1 ≫ Op2).
-                elsif(instruction_opcode = x"3" or instruction_opcode = x"4" or instruction_opcode = x"5" or
-                      instruction_opcode = x"6" or instruction_opcode = x"8" or instruction_opcode = x"9" or
-                      instruction_opcode = x"A" or instruction_opcode = x"B" or instruction_opcode = x"C" or
-                      instruction_opcode = x"D") then
+                elsif(instruction_opcode = x"3" or instruction_opcode = x"4" or
+                      instruction_opcode = x"8" or instruction_opcode = x"9" or
+                      instruction_opcode = x"A" or instruction_opcode = x"B" or
+                      instruction_opcode = x"C" or instruction_opcode = x"D") then
                     -- Continua o ciclo da Máquina de Estado da CPU.
                     next_state <= fetch_instruction;
 
@@ -437,7 +446,7 @@ begin
                 elsif(instruction_opcode = x"E") then
                     -- Continua o ciclo da Máquina de Estado da CPU.
                     next_state <= fetch_instruction;
-
+ 
                     if to_integer(unsigned(operator_1)) = to_integer(unsigned(operator_2)) then
                         instruction_pointer <= to_integer(unsigned(operator_2bytes));
                     else

@@ -29,12 +29,7 @@ architecture mix of tb_cpu is
      signal codec_read, codec_write, valid: std_logic := '0'; -- Read signal and  Write signal
  
      signal codec_in : std_logic_vector(7 downto 0) := (others => '0'); 	-- Byte written to codec
-     signal codec_out : std_logic_vector(7 downto 0) := (others => '0');                -- Byte read from codec
-
-    -- signal codec_read, codec_write, codec_interrupt : std_logic;
-    -- signal codec_valid : std_logic; -- Out
-    -- signal codec_data_out : std_logic_vector(7 downto 0);
-    -- signal codec_data_in : std_logic_vector(7 downto 0); -- Out
+     signal codec_out : std_logic_vector(7 downto 0) := (others => '0');    -- Byte read from codec
 
 begin
 
@@ -43,18 +38,6 @@ begin
         port map (clock, halt, instruction_in, instruction_addr,
                 r_dmem, w_dmem, dmem_data_addr, dmem_data_in, dmem_data_out,
                 interrupt, codec_read, codec_write, valid, codec_out, codec_in);
-
-    -- memory : entity work.memory(behavioral)
-    --     generic map (addr_width => addr_width, data_width => data_width)
-    --     port map (clock => clock, 
-    --         data_read => r_dmem, 
-    --         data_write => w_dmem, 
-    --         data_addr => dmem_data_addr, 
-    --         data_in => dmem_data_in, 
-    --         data_out => dmem_data_out);
-        
-    --     codec : entity work.codec(dataflow)
-    --         port map (interrupt, codec_read, codec_write, valid, codec_in , codec_out);
 
     estimulo : process is
         type line_tabela_verdade is record
@@ -80,28 +63,40 @@ begin
         type vetor_tv is array (0 to 3) of line_tabela_verdade;
         constant tabela_verdade : vetor_tv := (
          
+        -- Instruction : PUSHIP, JEQ e JMP (16 bits)
+
+        -- IMEM : Intruction Memory = Memoria dos Opcodes
+        -- DMEM : Data Memory = Memória dos Dados 
+
+        -- codec_read = 1 : Lê o arquivo input.txt e possui o codec_out
+        -- codec_write = 1 : Escreve no arquivo output.txt e NAO tem o codec_out
+
         -- Tabela Verdade
         -- (+) Entrada e (-) Saída
-        -- IN
 
-            ('0', x"10", x"0000",                       -- halt         (+), instruction_in (+), instruction_addr   (-)
-            '0', '1', x"0000", x"0000",  x"00000000",   -- r_dmem       (-), w_dmem         (-), dmem_data_addr     (-), dmem_data_in   (-), dmem_data_out  (+)
-            '1', '0', '1', '1',  x"00", x"00"           -- codec_read   (-), codec_write    (-), interrupt          (-), codec_valid    (+), codec_out      (+), codec_in (-)
+            -- Opcode Halt: 
+            ('0', x"00", x"0000",                       -- halt         (+), instruction_in (+), instruction_addr   (-)
+            '0', '0', x"0000", x"0000",  x"00000000",   -- r_dmem       (-), w_dmem         (-), dmem_data_addr     (-), dmem_data_in   (-), dmem_data_out  (+)
+            '0', '0', '0', '0',  x"00", x"00"           -- codec_read   (-), codec_write    (-), interrupt          (-), codec_valid    (+), codec_out      (+), codec_in (-)
             ), 
 
-            ('0', x"20", x"0001",                       -- halt         (+), instruction_in (+), instruction_addr   (-)
-            '1', '0', x"0000", x"00F3",  x"000000F3",   -- r_dmem       (-), w_dmem         (-), dmem_data_addr     (-), dmem_data_in   (-), dmem_data_out  (+)
-            '0', '1', '1', '1',  x"00", x"F3"           -- codec_read   (-), codec_write    (-), interrupt          (-), codec_valid    (+), codec_out      (+), codec_in (-)
+            -- Opcode In : Empilha byte recebido do CODEC (Codec_Read e Mem_Write)
+            -- codec_read = 1 : Lê o arquivo input.txt e possui o codec_out
+            ('0', x"10", x"0001",                       -- halt         (+), instruction_in (+), instruction_addr   (-)
+            '0', '1', x"0000", x"0010",  x"00000000",   -- r_dmem       (-), w_dmem         (-),                    (?), dmem_data_addr (-), dmem_data_in   (-), dmem_data_out  (+)
+            '1', '0', '1', '1',  x"10", x"00"           -- codec_read   (-), codec_write    (-), interrupt          (-), codec_valid    (+), codec_out      (+), codec_in       (-)
             ),
 
-            ('0', x"20", x"0001",                       -- halt (+), instruction_in (+), instruction_addr (-)
-            '1', '0', x"0001", x"00F3",  x"000000F3",   -- r_dmem (-), w_dmem (-), dmem_data_addr (-), dmem_data_in (-), dmem_data_out (+)
-            '0', '1', '1', '1',  x"00", x"F3"           -- codec_read (-), codec_write (-), interrupt (-), codec_valid (+), codec_out (+), codec_in (-)
+            -- Opcode Out : Empilha byte recebido do CODEC (Codec_Read e Mem_Write)
+            -- codec_write = 1 : Escreve no arquivo output.txt e NAO tem o codec_out
+            ('0', x"20", x"0002",                       -- halt         (+), instruction_in (+), instruction_addr   (-)
+            '1', '0', x"0000", x"00F3",  x"00000000",   -- r_dmem       (-), w_dmem         (-), dmem_data_addr     (-), dmem_data_in   (-), dmem_data_out  (+)
+            '0', '1', '1', '1',  x"00", x"00"           -- codec_read   (-), codec_write    (-), interrupt          (-), codec_valid    (+), codec_out      (+), codec_in (-)
             ),
 
-            ('0', x"10", x"0001",                           -- halt (+), instruction_in (+), instruction_addr (-)
-             '0', '1', x"0000", x"0000",  x"00000000",      -- r_dmem (-), w_dmem (-), dmem_data_addr (-), dmem_data_in (-), dmem_data_out (+)
-             '1', '0', '1', '1',  "00000000", "00000000"    -- codec_read (-), codec_write (-), interrupt (-), codec_valid (+), codec_out (+), codec_in (-)
+            ('0', x"10", x"0003",                           -- halt (+), instruction_in (+), instruction_addr (-)
+            '0', '1', x"0000", x"00F3",  x"00000000",   -- r_dmem       (-), w_dmem         (-), dmem_data_addr     (-), dmem_data_in   (-), dmem_data_out  (+)
+            '1', '0', '1', '1',  x"00", x"00"           -- codec_read   (-), codec_write    (-), interrupt          (-), codec_valid    (+), codec_out      (+), codec_in (-)
             )
 
         );
