@@ -23,7 +23,7 @@ end entity;
 
 architecture behavioral of memory is
 	subtype instruction is std_logic_vector((data_width-1) downto 0);
-    type mem_type is array ((2 ** data_width - 1) downto 0) of instruction;
+    type mem_type is array ((2 ** addr_width) - 1 downto 0) of instruction;
     signal mem : mem_type := (others => (others => '0'));
 
 begin 

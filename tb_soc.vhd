@@ -26,7 +26,7 @@ begin
         -- Carrega as informações do Firmware para IMEM
         started <= '0';
 
-        for i in 0 to 23 loop
+        for i in 0 to 50 loop
             clock <= not clock;
             wait for 1 ns;
             clock <= not clock;
@@ -41,29 +41,13 @@ begin
         clock <= not clock;
         wait for 1 ns;
 
-        for i in 0 to (3 * 23) loop
+        for i in 0 to (3 * 50) loop
             clock <= not clock;
             wait for 1 ns;
             clock <= not clock;
             wait for 1 ns;
         end loop;
 
-        clock <= not clock;
-        wait for 1 ns;
-        clock <= not clock;
-        wait for 1 ns;
-
-        clock <= not clock;
-        wait for 1 ns;
-        clock <= not clock;
-        wait for 1 ns;
-
-        clock <= not clock;
-        wait for 1 ns;
-        clock <= not clock;
-        wait for 1 ns;
-
-                
         clock <= not clock;
         wait for 1 ns;
         clock <= not clock;

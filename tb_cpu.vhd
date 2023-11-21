@@ -150,7 +150,7 @@ begin
            ),
 
             -- Opcode Imme : Empilha um byte contendo imediato (armazenado nos 4 bits menos significativos da instrução)
-            ('0', b"01000100", x"000C",                        -- halt         (+), instruction_in (+), instruction_addr   (-)
+            ('0', b"01000100", x"000C",                  -- halt         (+), instruction_in (+), instruction_addr   (-)
             '0', '1', x"0009", x"0004", x"00000000",    -- r_dmem       (-), w_dmem         (-),                    (?), dmem_data_addr (-), dmem_data_in   (-), dmem_data_out  (+)
             '0', '0', '0', '0',  x"00", x"00"           -- codec_read   (-), codec_write    (-), interrupt          (-), codec_valid    (+), codec_out      (+), codec_in       (-)
             ),

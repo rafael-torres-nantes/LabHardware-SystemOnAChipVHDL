@@ -24,7 +24,7 @@ end entity;
 
 architecture dataflow of soc is
     
-    file firmware : text open read_mode is firmware_filename;
+    file file_input : text open read_mode is firmware_filename;
 
     constant addr_width : natural := 16;    -- Memory Address Width (in bits)
     constant data_width : natural := 8;     -- Data Width (in bits)
@@ -125,14 +125,14 @@ architecture dataflow of soc is
                 codec_data_in => codec_data_in
             );
         
-        process (clock, started, imem_data_out, cpu_instruction_addr) -- process to fill IMEM
+        process (clock, started, imem_data_out, cpu_instruction_addr) 
             variable text_line : line;
             variable text_character : character;
         begin
-            if not endfile(firmware) and rising_edge(clock) then
+            if not endfile(file_input) and rising_edge(clock) then
                 -- Lê uma linha de texto do arquivo de entrada
-                readline(firmware, text_line);
-                for i in 0 to data_width - 1 loop
+                readline(file_input, text_line);
+                for i in 0 to (data_width - 1) loop
                     read(text_line, text_character);
                     if(text_character = '0') then
                         imem_data_in(data_width - 1 - i) <= '0'; 
